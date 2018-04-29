@@ -7,6 +7,7 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate futures_await as futures;
 extern crate gotham;
+extern crate gotham_session_redis;
 extern crate handlebars_gotham;
 extern crate hyper;
 extern crate mime;
@@ -26,6 +27,7 @@ use gotham::state::State;
 use handlebars_gotham::{DirectorySource, HandlebarsEngine, Template};
 use hyper::{Method, Response, StatusCode};
 use serde_json::{Map, Value};
+use std::time::Duration;
 
 type HandlerResult = Result<(State, Response), (State, HandlerError)>;
 
@@ -38,7 +40,12 @@ fn router() -> Router {
     let hbse = HandlebarsEngine::new(vec![Box::new(DirectorySource::new("./templates/", ".hbs"))]);
     hbse.reload().unwrap();
 
-    let sessions = NewSessionMiddleware::default().with_session_type::<MySession>();
+    let backend = gotham_session_redis::NewRedisBackend::new(
+        "127.0.0.1:6379",
+        "todolist:session:",
+        Duration::from_secs(365 * 24 * 60 * 60),
+    ).unwrap();
+    let sessions = NewSessionMiddleware::new(backend).with_session_type::<MySession>();
     let sessions = sessions.insecure(); // For non-HTTPS server
 
     let pipeline = new_pipeline().add(hbse).add(sessions).build();

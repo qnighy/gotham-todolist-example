@@ -1,0 +1,9 @@
+[package]
+name = "gotham-session-redis"
+version = "0.1.0"
+authors = ["Masaki Hara <ackie.h.gmai@gmail.com>"]
+
+[dependencies]
+tokio = "0.1"
+redis-async = "0.2"
+gotham = "0.2"
