@@ -4,8 +4,10 @@ version = "0.1.0"
 authors = ["Masaki Hara <ackie.h.gmai@gmail.com>"]
 
 [dependencies]
+serde_json = "1.0"
 futures-await = "0.1"
 tokio = "0.1"
 mime = "0.3"
 hyper = "0.11"
+handlebars-gotham = { git = "https://github.com/sunng87/handlebars-gotham.git", rev = "ba55769" }
 gotham = "0.2"
