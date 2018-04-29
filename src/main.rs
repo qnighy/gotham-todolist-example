@@ -1,5 +1,8 @@
 #![feature(proc_macro, generators)]
 
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 extern crate futures_await as futures;
@@ -14,6 +17,7 @@ use tokio::prelude::*;
 
 use gotham::handler::HandlerError;
 use gotham::http::response::create_response;
+use gotham::middleware::session::{NewSessionMiddleware, SessionData};
 use gotham::pipeline::new_pipeline;
 use gotham::pipeline::single::single_pipeline;
 use gotham::router::builder::*;
@@ -25,13 +29,23 @@ use serde_json::{Map, Value};
 
 type HandlerResult = Result<(State, Response), (State, HandlerError)>;
 
+#[derive(Default, Serialize, Deserialize)]
+struct MySession {
+    counter: usize,
+}
+
 fn router() -> Router {
     let hbse = HandlebarsEngine::new(vec![Box::new(DirectorySource::new("./templates/", ".hbs"))]);
     hbse.reload().unwrap();
 
-    let (chain, pipelines) = single_pipeline(new_pipeline().add(hbse).build());
+    let sessions = NewSessionMiddleware::default().with_session_type::<MySession>();
+    let sessions = sessions.insecure(); // For non-HTTPS server
+
+    let pipeline = new_pipeline().add(hbse).add(sessions).build();
+    let (chain, pipelines) = single_pipeline(pipeline);
     build_router(chain, pipelines, |route| {
         route.get_or_head("/").to(index);
+        route.get_or_head("/counter").to(counter);
     })
 }
 
@@ -41,6 +55,24 @@ fn index(state: State) -> HandlerResult {
     let method = state.borrow::<Method>().clone();
     if method == Method::Get {
         state.put(Template::new("index", &json!({})));
+    }
+
+    let response = create_response(&state, StatusCode::Ok, None);
+
+    Ok((state, response))
+}
+
+#[async(boxed)]
+fn counter(state: State) -> HandlerResult {
+    let mut state = state;
+    let method = state.borrow::<Method>().clone();
+    if method == Method::Get {
+        let counter = {
+            let mut session = state.borrow_mut::<SessionData<MySession>>();
+            session.counter += 1;
+            session.counter
+        };
+        state.put(Template::new("counter", &json!({ "counter": counter, })));
     }
 
     let response = create_response(&state, StatusCode::Ok, None);
