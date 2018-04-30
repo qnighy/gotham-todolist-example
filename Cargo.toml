@@ -9,6 +9,8 @@ serde_derive = "1.0"
 serde_json = "1.0"
 futures-await = "0.1"
 tokio = "0.1"
+# mysql_async = "0.14"
+mysql_async = { git = "https://github.com/qnighy/mysql_async.git", rev = "690632c" }
 mime = "0.3"
 hyper = "0.11"
 handlebars-gotham = { git = "https://github.com/sunng87/handlebars-gotham.git", rev = "ba55769" }
